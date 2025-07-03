@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from .generator import generate_melody
-from .midi_out import melody_to_midi
+from .midi_out import melody_to_midi, midi_to_melody
 from .export import export_fur, export_dmf
 
 
@@ -20,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--bpm", type=int, default=120, help="Tempo of the song.")
     p.add_argument("--scale", type=str, default="C", help="Root of the scale (e.g. C, D#, Gb).")
     p.add_argument("--minor", action="store_true", help="Generate in minor scale (default major).")
+    p.add_argument("--input-midi", type=str, help="Optional path to a MIDI file you want to convert / cover.")
     p.add_argument("--outfile", type=str, default="song", help="Basename of the output files (no extension).")
     p.add_argument("--no-dmf", action="store_true", help="Skip DMF export.")
     p.add_argument("--no-fur", action="store_true", help="Skip FUR export.")
@@ -29,7 +30,19 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
 
-    melody = generate_melody(args.length, root=args.scale, major=not args.minor)
+    if args.input_midi:
+        try:
+            import mido
+            src_mid = mido.MidiFile(args.input_midi)
+            melody = midi_to_melody(src_mid)
+            if args.length > 0 and len(melody) > args.length:
+                melody = melody[: args.length]
+        except FileNotFoundError:
+            print(f"⚠️  Input MIDI {args.input_midi} not found – falling back to AI generation.")
+            melody = generate_melody(args.length, root=args.scale, major=not args.minor)
+    else:
+        melody = generate_melody(args.length, root=args.scale, major=not args.minor)
+
     mid = melody_to_midi(melody, bpm=args.bpm)
 
     midi_path = Path(f"{args.outfile}.mid")
