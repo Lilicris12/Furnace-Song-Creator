@@ -21,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--scale", type=str, default="C", help="Root of the scale (e.g. C, D#, Gb).")
     p.add_argument("--minor", action="store_true", help="Generate in minor scale (default major).")
     p.add_argument("--input-midi", type=str, help="Optional path to a MIDI file you want to convert / cover.")
+    p.add_argument("--model", choices=["basic", "advanced"], default="basic", help="Choose composition model.")
     p.add_argument("--outfile", type=str, default="song", help="Basename of the output files (no extension).")
     p.add_argument("--no-dmf", action="store_true", help="Skip DMF export.")
     p.add_argument("--no-fur", action="store_true", help="Skip FUR export.")
@@ -39,9 +40,17 @@ def main(argv: list[str] | None = None) -> None:
                 melody = melody[: args.length]
         except FileNotFoundError:
             print(f"⚠️  Input MIDI {args.input_midi} not found – falling back to AI generation.")
-            melody = generate_melody(args.length, root=args.scale, major=not args.minor)
+            if args.model == "advanced":
+                from .advanced_model import advanced_generate_melody
+                melody = advanced_generate_melody(args.length, root=args.scale, major=not args.minor)
+            else:
+                melody = generate_melody(args.length, root=args.scale, major=not args.minor)
     else:
-        melody = generate_melody(args.length, root=args.scale, major=not args.minor)
+        if args.model == "advanced":
+            from .advanced_model import advanced_generate_melody
+            melody = advanced_generate_melody(args.length, root=args.scale, major=not args.minor)
+        else:
+            melody = generate_melody(args.length, root=args.scale, major=not args.minor)
 
     mid = melody_to_midi(melody, bpm=args.bpm)
 

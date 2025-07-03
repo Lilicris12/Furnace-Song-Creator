@@ -22,9 +22,13 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # 2)  Generate a new song (outputs song.mid, song.fur, song.dmf)
-python -m furnace_ai --prompt "spacey 90s demo-scene ballad" --length 64 --bpm 150 --outfile track
+#    Available models: basic (Markov) | advanced (tiny LSTM – needs PyTorch)
+python -m furnace_ai --prompt "spacey 90s demo-scene ballad" --length 64 --bpm 150 --outfile track --model advanced
 
 # 3)  Open track.fur in Furnace or track.dmf in DefleMask 🙂
+
+#   • For covers – turn any .mid into tracker modules
+python -m furnace_ai --input-midi existing.mid --outfile my_cover
 ```
 
 ## How it works (very briefly)
@@ -33,12 +37,16 @@ python -m furnace_ai --prompt "spacey 90s demo-scene ballad" --length 64 --bpm 1
 2. `midi_out.py` converts that sequence to a standard **MIDI** file via the `mido` library.
 3. `export.py` wraps the MIDI bytes into a crude container so Furnace/DefleMask agree to open the file.
 
+If `torch` is installed you can select `--model advanced` to use a *tiny* LSTM
+(`furnace_ai.advanced_model`) trained on a short embedded corpus.  Bring your
+own checkpoint via the `FURNACE_AI_LSTM_CHECKPOINT` env-var if you like!
+
 The code is heavily commented so you can swap the composition algorithm for any neural net or external API.
 
 ## Limitations / TODO
 
 * The composition quality is intentionally *simple* – replace `generator.py` with your own model.
+* Advanced LSTM requires PyTorch; if missing the CLI falls back to Markov.
 * Exporters write tiny placeholder files – you will likely want to implement native `.fur` / `.dmf` serialization.
-* Only a few common scales are supported; percussion / effects are not yet generated.
 
 Contributions are welcome.  Have fun!  🎶
